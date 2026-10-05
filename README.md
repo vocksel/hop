@@ -16,7 +16,7 @@ lute run build
 The native executable is written to `build/hop`. To install a released version through Rokit:
 
 ```sh
-rokit add --global flipbook-labs/hop
+rokit add --global vocksel/hop
 ```
 
 ## Commands

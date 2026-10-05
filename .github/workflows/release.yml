@@ -43,17 +43,9 @@ jobs:
       group: release-pr-${{ github.ref }}
       cancel-in-progress: false
     steps:
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.FLIPBOOK_BACKEND_APP_ID }}
-          private-key: ${{ secrets.FLIPBOOK_BACKEND_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
           ref: main
 
       - name: Download release assets
@@ -67,7 +59,6 @@ jobs:
         id: changewrite
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-token: ${{ steps.app-token.outputs.token }}
           force-publish: ${{ inputs.force_publish || false }}
           base: main
           branch: publish-next-version

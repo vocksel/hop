@@ -2,13 +2,13 @@
 	"name": "hop",
 	"displayName": "Hop",
 	"description": "Search worktrees and pull requests and switch between them inside one VS Code window.",
-	"publisher": "flipbook-labs",
+	"publisher": "vocksel",
 	"version": "0.0.0",
 	"private": true,
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/flipbook-labs/hop"
+		"url": "https://github.com/vocksel/hop"
 	},
 	"engines": {
 		"vscode": "^1.100.0"
