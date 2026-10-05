@@ -31,7 +31,7 @@ const list: HopList = {
 			},
 		},
 		{
-			repository: { name: "hop", remote: "flipbook-labs/hop" },
+			repository: { name: "hop", remote: "vocksel/hop" },
 			path: "/home/me/git/hop",
 			branch: "main",
 			primary: true,

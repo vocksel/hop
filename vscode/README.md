@@ -4,7 +4,7 @@ Hop switches one VS Code window between your worktrees. Run **Hop: Go** to searc
 
 Each switch opens the checkout as the window's only workspace folder. VS Code reloads the window and its extensions when the folder changes.
 
-`hop <expr>` in a terminal hands off to the extension through `vscode://flipbook-labs.hop/to?path=…` and switches the most recently focused window.
+`hop <expr>` in a terminal hands off to the extension through `vscode://vocksel.hop/to?path=…` and switches the most recently focused window.
 
 Pull requests without a local worktree appear at the end of the list. Selecting one runs `hop to`, which switches to a worktree it finds after refreshing or checks the PR out into a new one. Every row with a PR has a button to open it in the browser. Pasting a PR URL (or typing `owner/repo#123`, `repo#123`, or `#123`) shows that PR's worktree, or a **Check out** row for a PR Hop has not seen. Other people's PRs that Hop has checked out, marked with their author, appear only for these references, never for search words.
 

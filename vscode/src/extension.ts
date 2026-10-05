@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext): void {
 				() => refresh().then(() => undefined, report)
 			)
 		),
-		// `hop <expr>` in a terminal hands off here: vscode://flipbook-labs.hop/to?path=<worktree>
+		// `hop <expr>` in a terminal hands off here: vscode://vocksel.hop/to?path=<worktree>
 		vscode.window.registerUriHandler({
 			handleUri: async (uri) => {
 				if (uri.path !== "/to") {

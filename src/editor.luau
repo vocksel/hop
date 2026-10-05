@@ -1,7 +1,7 @@
 local defaultRun = require("@root/command")
 local types = require("@root/types")
 
-local EXTENSION_ID = "flipbook-labs.hop"
+local EXTENSION_ID = "vocksel.hop"
 
 local function invoke(argv: { string }, runner: types.CommandRunner?)
 	local run = runner or defaultRun
@@ -37,7 +37,7 @@ local function encode(value: string): string
 end
 
 local function handoffUri(directory: string): string
-	return `vscode://flipbook-labs.hop/to?path={encode(directory)}`
+	return `vscode://vocksel.hop/to?path={encode(directory)}`
 end
 
 -- With the Hop extension installed, the most recently focused VS Code window switches to
