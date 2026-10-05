@@ -3,6 +3,13 @@
 All notable changes to Hop will be documented here.
 
 
+## v0.2.0
+
+### Changes
+
+- Hop now lives at `vocksel/hop`. Install it with `rokit add --global vocksel/hop`. The VS Code extension's ID is now `vocksel.hop`, so reinstall the extension; until then `hop <expr>` opens worktrees with `code <folder>` instead of switching the current window.
+
+
 ## v0.1.0
 
 ### Features
