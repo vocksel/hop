@@ -19,6 +19,7 @@ lute run build
 
 - Keep production code in `src/` and colocate tests as `*.spec.luau`.
 - Preserve strict types and use the aliases declared in `.luaurc`.
+- Name a required module after the module itself, such as `local cli = require("@batteries/cli")`, without prefixing the package.
 - Route every external command through the `CommandRunner` seam in `src/types.luau`.
 - Keep every `code` and `agent` invocation in `src/editor.luau`.
 - Treat missing Cursor, Claude Code, or local tool data as provider degradation rather than a failure of unrelated commands.
