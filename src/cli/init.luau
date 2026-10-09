@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local fs = require("@std/fs")
 local io = require("@std/io")
 local json = require("@std/json")
@@ -84,20 +84,20 @@ local COMMAND_HELP: { [string]: string } = {
 }
 
 type Parsers = {
-	root: batteriesCli.Parser,
-	commands: { [string]: batteriesCli.Parser },
+	root: cli.Parser,
+	commands: { [string]: cli.Parser },
 }
 
-local function addHelpFlag(parser: batteriesCli.Parser)
+local function addHelpFlag(parser: cli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
 end
 
 local function createParsers(): Parsers
-	local root = batteriesCli.parser()
+	local root = cli.parser()
 	addHelpFlag(root)
 
-	local commands: { [string]: batteriesCli.Parser } = {}
-	local function command(name: string): batteriesCli.Parser
+	local commands: { [string]: cli.Parser } = {}
+	local function command(name: string): cli.Parser
 		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
 		addHelpFlag(parser)
 		commands[name] = parser
@@ -133,7 +133,7 @@ local function withDefaultCommand(args: { string }): { string }
 	return { "to", table.unpack(args) }
 end
 
-local function rootHelp(parser: batteriesCli.Parser): string
+local function rootHelp(parser: cli.Parser): string
 	return table.concat({
 		SUMMARY,
 		"",
@@ -146,11 +146,11 @@ local function rootHelp(parser: batteriesCli.Parser): string
 	}, "\n")
 end
 
-local function commandHelp(name: string, parser: batteriesCli.Parser): string
+local function commandHelp(name: string, parser: cli.Parser): string
 	return `{COMMAND_HELP[name]}\n\n{parser:usage(`hop {name}`)}\n\n{parser:help()}`
 end
 
-local function recentOptions(parser: batteriesCli.Parser): RecentOptions
+local function recentOptions(parser: cli.Parser): RecentOptions
 	local limit = tonumber(parser:get("limit"))
 	assert(limit and limit >= 0 and limit % 1 == 0, "--limit must be a non-negative integer")
 	local agent = parser:get("agent")
@@ -163,7 +163,7 @@ local function recentOptions(parser: batteriesCli.Parser): RecentOptions
 	}
 end
 
-local function listOptions(parser: batteriesCli.Parser): ListOptions
+local function listOptions(parser: cli.Parser): ListOptions
 	return {
 		refresh = parser:has("refresh"),
 		pullRequests = not parser:has("no-pr"),
