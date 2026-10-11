@@ -9,7 +9,8 @@ on:
         default: false
 
 jobs:
-  build:
+  platform:
+    name: build (${{ matrix.asset }})
     strategy:
       fail-fast: false
       matrix:
@@ -56,3 +57,14 @@ jobs:
         with:
           name: asset-${{ matrix.asset }}
           path: hop-${{ matrix.asset }}.zip
+
+  # The ruleset requires `build / build`, so this reports every platform's result under one name.
+  build:
+    needs: platform
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Fail when a platform failed
+        if: needs.platform.result != 'success'
+        run: exit 1

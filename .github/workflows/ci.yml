@@ -47,7 +47,8 @@ jobs:
       - name: Analyze
         run: lute run analyze
 
-  test:
+  test-platform:
+    name: test (${{ matrix.runner }})
     strategy:
       fail-fast: false
       matrix:
@@ -87,6 +88,17 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # The ruleset requires `test`, so this reports every platform's result under one name.
+  test:
+    needs: test-platform
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Fail when a platform failed
+        if: needs.test-platform.result != 'success'
+        run: exit 1
 
   build:
     uses: ./.github/workflows/build.yml
