@@ -1,6 +1,7 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
+local platform = require("@std/system/platform")
 local process = require("@std/process")
 
 local defaultRun = require("@root/command")
@@ -21,7 +22,8 @@ local function decodeUri(value: string): string
 	local decoded = result:gsub("%%(%x%x)", function(hex)
 		return string.char(tonumber(hex, 16) :: number)
 	end)
-	return decoded
+	-- Windows URIs carry the drive after a slash, as in `file:///c:/src`.
+	return decoded:match("^/(%a:/.*)$") or decoded
 end
 
 local function workspaceDirectory(storage: path.Pathlike, workspaceId: string): string?
@@ -68,13 +70,31 @@ local function trackedContext(header: json.Object, workspaceDirectory: string?):
 	return selectedDirectory or workspaceDirectory, selectedBranch
 end
 
+-- Cursor keeps its data where VS Code does on each platform.
+function Cursor.userDirectory(
+	home: path.Pathlike,
+	system: "macos" | "windows" | "linux",
+	environment: { [string]: string }
+): path.Path
+	if system == "macos" then
+		return path.join(home, "Library", "Application Support", "Cursor", "User")
+	elseif system == "windows" then
+		local appData = environment.APPDATA
+		local roaming = if appData and appData ~= "" then path.parse(appData) else path.join(home, "AppData", "Roaming")
+		return path.join(roaming, "Cursor", "User")
+	end
+	local configHome = environment.XDG_CONFIG_HOME
+	local config = if configHome and configHome ~= "" then path.parse(configHome) else path.join(home, ".config")
+	return path.join(config, "Cursor", "User")
+end
+
 function Cursor.new(options: Options?): types.Provider
 	local resolved: Options = options or {}
 	local home = resolved.homeDirectory or process.homedir()
-	local databasePath = resolved.databasePath
-		or path.join(home, "Library", "Application Support", "Cursor", "User", "globalStorage", "state.vscdb")
-	local workspaceStorage = resolved.workspaceStoragePath
-		or path.join(home, "Library", "Application Support", "Cursor", "User", "workspaceStorage")
+	local system = if platform.win32 then "windows" elseif platform.macos then "macos" else "linux"
+	local userDirectory = Cursor.userDirectory(home, system, process.env)
+	local databasePath = resolved.databasePath or path.join(userDirectory, "globalStorage", "state.vscdb")
+	local workspaceStorage = resolved.workspaceStoragePath or path.join(userDirectory, "workspaceStorage")
 	local runner = resolved.runner or defaultRun
 
 	return {
@@ -83,13 +103,14 @@ function Cursor.new(options: Options?): types.Provider
 			if not fs.exists(databasePath) then
 				return {}
 			end
-			local result = runner({
+			-- Running a missing `sqlite3`, as on most Windows machines, throws rather than failing.
+			local ran, result = pcall(runner, {
 				"sqlite3",
 				"-json",
 				`file:{databasePath}?mode=ro`,
 				"SELECT composerId, workspaceId, lastUpdatedAt, value FROM composerHeaders WHERE isArchived=0 AND isSubagent=0 ORDER BY lastUpdatedAt DESC;",
 			})
-			if not result.ok then
+			if not ran or not result.ok then
 				return {}
 			end
 			local decodeOk, decoded = pcall(json.deserialize, result.stdout)

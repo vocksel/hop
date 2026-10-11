@@ -1,3 +1,4 @@
+local paths = require("@root/paths")
 local snapshot = require("@root/core/snapshot")
 local types = require("@root/types")
 
@@ -110,7 +111,7 @@ local function entryMatches(entry: snapshot.Entry, word: string): boolean
 	end
 	local fields = {
 		worktree.branch or "",
-		tostring(worktree.path):match("([^/]+)/*$") or "",
+		paths.basename(worktree.path),
 		worktree.repository or "",
 		snapshot.repositoryName(worktree),
 	}

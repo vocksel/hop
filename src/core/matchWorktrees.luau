@@ -1,13 +1,10 @@
+local paths = require("@root/paths")
 local types = require("@root/types")
 
 type Ranked = {
 	worktree: types.Worktree,
 	score: number,
 }
-
-local function basename(value: string): string
-	return value:gsub("/+$", ""):match("([^/]+)$") or value
-end
 
 local function matchWorktrees(worktrees: { types.Worktree }, query: string): { types.Worktree }
 	local normalized = query:lower()
@@ -22,7 +19,7 @@ local function matchWorktrees(worktrees: { types.Worktree }, query: string): { t
 
 		local score = 0
 		local branch = if worktree.branch then worktree.branch:lower() else ""
-		local leaf = basename(tostring(worktree.path)):lower()
+		local leaf = paths.basename(worktree.path):lower()
 		local repository = if worktree.repository then worktree.repository:lower() else ""
 		if branch:find(normalized, 1, true) then
 			score = 300

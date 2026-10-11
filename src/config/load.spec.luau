@@ -6,6 +6,11 @@ local test = require("@std/test")
 
 local load = require("@root/config/load")
 
+-- Fixture paths in the form this platform prints them.
+local function native(value: string): string
+	return tostring(path.parse(value))
+end
+
 local function temporaryDirectory(name: string): path.Path
 	local directory = path.join(system.tmpdir(), `hop-config-{process.pid()}-{name}`)
 	if fs.exists(directory) then
@@ -27,8 +32,8 @@ test.case("config loads roots with luau.loadModule", function(assert)
 	local configPath = path.join(home, "config.luau")
 	fs.writeStringToFile(configPath, 'return { roots = { "/one", "/two" } }\n')
 	local config = load({ homeDirectory = home, configPath = configPath })
-	assert.eq(tostring(config.roots[1]), "/one")
-	assert.eq(tostring(config.roots[2]), "/two")
+	assert.eq(tostring(config.roots[1]), native("/one"))
+	assert.eq(tostring(config.roots[2]), native("/two"))
 end)
 
 test.case("config rejects a module that does not return a table", function(assert)

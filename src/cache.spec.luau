@@ -7,6 +7,11 @@ local test = require("@std/test")
 local cache = require("@root/cache")
 local snapshot = require("@root/core/snapshot")
 
+-- Fixture paths in the form this platform prints them.
+local function native(value: string): string
+	return tostring(path.parse(value))
+end
+
 local function temporaryHome(name: string): path.Path
 	local directory = path.join(system.tmpdir(), `hop-cache-{process.pid()}-{name}`)
 	if fs.exists(directory) then
@@ -45,7 +50,7 @@ test.case("cache round-trips a snapshot", function(assert)
 	local value = store.read() or error("expected cached snapshot")
 	assert.eq(value.generatedAt, 1234)
 	local entry = value.entries[1]
-	assert.eq(tostring(entry.worktree.path), "/src/widgets-feature")
+	assert.eq(tostring(entry.worktree.path), native("/src/widgets-feature"))
 	assert.eq(entry.worktree.head, "abc123")
 	assert.eq(entry.worktree.root, "/src/widgets")
 	assert.eq(entry.worktree.defaultBranch, "main")

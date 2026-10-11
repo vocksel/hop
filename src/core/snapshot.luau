@@ -2,6 +2,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 
 local github = require("@root/github")
+local paths = require("@root/paths")
 local types = require("@root/types")
 
 export type Entry = {
@@ -51,7 +52,7 @@ local function repositoryName(worktree: types.Worktree): string
 		return worktree.repository:match("/(.+)$") or worktree.repository
 	end
 	local root = worktree.root or tostring(worktree.path)
-	return root:gsub("/+$", ""):match("([^/]+)$") or root
+	return paths.basename(root)
 end
 
 -- Repositories without an `origin/HEAD` fall back to the conventional default branch names.

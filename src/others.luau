@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
+local paths = require("@root/paths")
 local snapshot = require("@root/core/snapshot")
 
 -- Worktrees Hop checked out for other people's pull requests. Everything lives under
@@ -35,8 +36,8 @@ end
 
 -- Discovery reaches these worktrees through the user's own clones, so they are filtered by location.
 local function contains(homeDirectory: path.Pathlike, value: path.Pathlike): boolean
-	local prefix = `{tostring(directory(homeDirectory))}/`
-	return tostring(value):sub(1, #prefix) == prefix
+	local rest = paths.below(directory(homeDirectory), value)
+	return rest ~= nil and #rest > 0
 end
 
 -- Entries whose worktree has been deleted are dropped on read.

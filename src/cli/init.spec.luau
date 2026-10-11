@@ -9,6 +9,11 @@ local providers = require("@root/providers")
 local snapshot = require("@root/core/snapshot")
 local types = require("@root/types")
 
+-- Fixture paths in the form this platform prints them.
+local function native(value: string): string
+	return tostring(path.parse(value))
+end
+
 local worktrees: { types.Worktree } = {
 	{
 		path = path.parse("/src/widgets"),
@@ -51,6 +56,7 @@ local sessions: { types.Session } = {
 
 local function baseDependencies(write: (string) -> ()): cli.Dependencies
 	return {
+		system = "macos",
 		write = write,
 		runner = function(argv)
 			if argv[1] == "gh" and argv[3] == "graphql" then
@@ -101,7 +107,7 @@ test.case("recent renders attention, repository, branch, PR, and worktree", func
 	assert.strContains(output, "example/widgets")
 	assert.strContains(output, "feature/hop")
 	assert.strContains(output, "PR #42")
-	assert.strContains(output, "/src/widgets-feature")
+	assert.strContains(output, native("/src/widgets-feature"))
 end)
 
 local function memoryCache(initial: snapshot.Snapshot?): (cache.Cache, { snapshot.Snapshot })
@@ -191,6 +197,7 @@ local function toDependencies(
 			return { ok = true, exitCode = 0, stdout = "", stderr = "" }
 		end,
 		homeDirectory = "/home/me",
+		system = "macos",
 		loadWorktrees = function()
 			return worktrees
 		end,
@@ -255,14 +262,14 @@ test.case("bare expressions open the matching PR worktree", function(assert)
 		local commands: { { string } } = {}
 		cli.execute({ expression }, (toDependencies(commands, {})))
 		assert.eq(lastCommand(commands)[1], "code")
-		assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+		assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 	end
 end)
 
 test.case("to matches PR titles and multi-word queries", function(assert)
 	local commands: { { string } } = {}
 	cli.execute({ "to", "hop", "command" }, (toDependencies(commands, {})))
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 end)
 
 test.case("to picks from ambiguous matches with the numbered picker", function(assert)
@@ -271,13 +278,13 @@ test.case("to picks from ambiguous matches with the numbered picker", function(a
 	cli.execute({ "widgets" }, (toDependencies(commands, output)))
 	assert.strContains(output[1], "1. widgets · main · no PR")
 	assert.strContains(output[1], "2. widgets · feature/hop · #42 Add the hop command (open)")
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 end)
 
 test.case("to opens a repository's default-branch checkout by keyword", function(assert)
 	local commands: { { string } } = {}
 	cli.execute({ "widgets", "default" }, (toDependencies(commands, {})))
-	assert.eq(lastCommand(commands)[2], "/src/widgets")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets"))
 end)
 
 test.case("to lists the most recently used matches first", function(assert)
@@ -286,11 +293,14 @@ test.case("to lists the most recently used matches first", function(assert)
 		local output: { string } = {}
 		local dependencies = toDependencies(commands, output)
 		dependencies.activity = function(worktree)
-			return if tostring(worktree.path) == recent then 20 else 10
+			return if tostring(worktree.path) == native(recent) then 20 else 10
 		end
 		cli.execute({ "example" }, dependencies)
 		assert.strContains(output[1], `1. widgets · {if recent == "/src/widgets" then "main" else "feature/hop"}`)
-		assert.eq(lastCommand(commands)[2], if recent == "/src/widgets" then "/src/widgets-feature" else "/src/widgets")
+		assert.eq(
+			lastCommand(commands)[2],
+			if recent == "/src/widgets" then native("/src/widgets-feature") else native("/src/widgets")
+		)
 	end
 end)
 
@@ -300,7 +310,7 @@ test.case("to refreshes a stale cache once before giving up", function(assert)
 	local dependencies, writes = toDependencies(commands, {}, stale)
 	cli.execute({ "feature/hop" }, dependencies)
 	assert.eq(#writes, 1)
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 end)
 
 test.case("to refreshes a cache whose matching worktree was removed", function(assert)
@@ -330,7 +340,7 @@ test.case("to still opens a worktree when the cache cannot be written", function
 		end,
 	}
 	cli.execute({ "feature/hop" }, dependencies)
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 end)
 
 test.case("a failed GitHub lookup does not replace the cache", function(assert)
@@ -348,7 +358,7 @@ test.case("list only abbreviates paths inside the home directory", function(asse
 	dependencies.homeDirectory = "/src/widgets"
 	cli.execute({ "list" }, dependencies)
 	assert.strContains(output[1], "\n    ~\n")
-	assert.strContains(output[1], "\n    /src/widgets-feature")
+	assert.strContains(output[1], "\n    " .. native("/src/widgets-feature"))
 end)
 
 local function commandsFrom(commands: { { string } }, program: string): { string }
@@ -368,12 +378,12 @@ test.case("to checks out someone else's PR URL under the cache, linked to your c
 	local dependencies, writes = toDependencies(commands, output, nil, store)
 	cli.execute({ "https://github.com/Example/Widgets/pull/7" }, dependencies)
 
-	local destination = `{SILO}/worktrees/example/widgets-pr-7`
+	local destination = native(`{SILO}/worktrees/example/widgets-pr-7`)
 	local gitCommands = commandsFrom(commands, "git")
-	assert.eq(gitCommands[1], "git -C /src/widgets worktree list --porcelain")
-	assert.eq(gitCommands[2], "git -C /src/widgets fetch origin refs/pull/7/head")
-	assert.eq(gitCommands[3], "git -C /src/widgets show-ref --verify --quiet refs/heads/pr-7")
-	assert.eq(gitCommands[4], `git -C /src/widgets worktree add -b pr-7 {destination} FETCH_HEAD`)
+	assert.eq(gitCommands[1], `git -C {native("/src/widgets")} worktree list --porcelain`)
+	assert.eq(gitCommands[2], `git -C {native("/src/widgets")} fetch origin refs/pull/7/head`)
+	assert.eq(gitCommands[3], `git -C {native("/src/widgets")} show-ref --verify --quiet refs/heads/pr-7`)
+	assert.eq(gitCommands[4], `git -C {native("/src/widgets")} worktree add -b pr-7 {destination} FETCH_HEAD`)
 	assert.eq(table.concat(lastCommand(commands), " "), `code {destination}`)
 	assert.strContains(output[1], `Checked out Example/Widgets#7 in {destination}`)
 
@@ -391,7 +401,7 @@ end)
 
 test.case("to reopens others' work by reference without asking GitHub", function(assert)
 	local commands: { { string } } = {}
-	local destination = `{SILO}/worktrees/example/widgets-pr-7`
+	local destination = native(`{SILO}/worktrees/example/widgets-pr-7`)
 	local store = memoryOthers({
 		{
 			worktree = {
@@ -437,19 +447,18 @@ test.case("to checks out fork PRs from refs/pull into a PR-named branch", functi
 	local commands: { { string } } = {}
 	cli.execute({ "example/widgets#8" }, (toDependencies(commands, {})))
 	local gitCommands = commandsFrom(commands, "git")
-	assert.eq(gitCommands[2], "git -C /src/widgets fetch origin refs/pull/8/head")
-	assert.eq(
-		gitCommands[4],
-		`git -C /src/widgets worktree add -b pr-8 {SILO}/worktrees/example/widgets-pr-8 FETCH_HEAD`
-	)
+	assert.eq(gitCommands[2], `git -C {native("/src/widgets")} fetch origin refs/pull/8/head`)
+	local destination = native(`{SILO}/worktrees/example/widgets-pr-8`)
+	assert.eq(gitCommands[4], `git -C {native("/src/widgets")} worktree add -b pr-8 {destination} FETCH_HEAD`)
 end)
 
 test.case("to fast-forwards and reuses an existing local branch for a PR checkout", function(assert)
 	local commands: { { string } } = {}
 	cli.execute({ "widgets#10" }, (toDependencies(commands, {})))
 	local gitCommands = commandsFrom(commands, "git")
-	assert.eq(gitCommands[4], "git -C /src/widgets fetch origin refs/pull/10/head:refs/heads/pr-10")
-	assert.eq(gitCommands[5], `git -C /src/widgets worktree add {SILO}/worktrees/example/widgets-pr-10 pr-10`)
+	assert.eq(gitCommands[4], `git -C {native("/src/widgets")} fetch origin refs/pull/10/head:refs/heads/pr-10`)
+	local destination = native(`{SILO}/worktrees/example/widgets-pr-10`)
+	assert.eq(gitCommands[5], `git -C {native("/src/widgets")} worktree add {destination} pr-10`)
 end)
 
 test.case(
@@ -472,11 +481,11 @@ test.case(
 			return runner(argv)
 		end
 		cli.execute({ "example/widgets#7" }, dependencies)
-		assert.eq(lastCommand(commands)[2], "/src/widgets-fix")
+		assert.eq(lastCommand(commands)[2], native("/src/widgets-fix"))
 		assert.eq(#stored, 0)
 		local cached = writes[#writes]
 		local entry = cached.entries[#cached.entries]
-		assert.eq(tostring(entry.worktree.path), "/src/widgets-fix")
+		assert.eq(tostring(entry.worktree.path), native("/src/widgets-fix"))
 		assert.eq(entry.pullRequest and entry.pullRequest.number, 7)
 	end
 )
@@ -484,7 +493,7 @@ test.case(
 test.case("bare numbers are search words that match repo#123", function(assert)
 	local commands: { { string } } = {}
 	cli.execute({ "42" }, (toDependencies(commands, {})))
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 	assert.eq(#commandsFrom(commands, "git"), 0)
 end)
 
@@ -494,14 +503,14 @@ test.case("to opens a worktree already on a PR's branch instead of adding one", 
 	cli.execute({ "example/widgets#9" }, (toDependencies(commands, output)))
 	assert.eq(#commandsFrom(commands, "git"), 0)
 	assert.eq(#output, 0)
-	assert.eq(lastCommand(commands)[2], "/src/widgets-feature")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-feature"))
 end)
 
 test.case("to checks out the viewer's PR that has no worktree and drops it from the orphan list", function(assert)
 	local commands: { { string } } = {}
 	local dependencies, writes = toDependencies(commands, {})
 	cli.execute({ "#43" }, dependencies)
-	assert.eq(lastCommand(commands)[2], "/src/widgets-pr-43")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-pr-43"))
 	assert.eq(#writes[#writes].pullRequests, 0)
 end)
 
@@ -509,7 +518,7 @@ test.case("to refreshes the cache before filing your new PR as someone else's", 
 	local commands: { { string } } = {}
 	local store, stored = memoryOthers()
 	cli.execute({ "example/widgets#43" }, (toDependencies(commands, {}, snapshot.build(worktrees, {}, 0), store)))
-	assert.eq(lastCommand(commands)[2], "/src/widgets-pr-43")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-pr-43"))
 	assert.eq(#stored, 0)
 end)
 
@@ -534,7 +543,7 @@ test.case("to refreshes a cached PR that has since gained a worktree instead of 
 		return all
 	end
 	cli.execute({ "#43" }, dependencies)
-	assert.eq(lastCommand(commands)[2], "/src/widgets-elsewhere")
+	assert.eq(lastCommand(commands)[2], native("/src/widgets-elsewhere"))
 	assert.eq(#commandsFrom(commands, "git"), 0)
 end)
 
@@ -560,26 +569,26 @@ test.case("to keeps records another Hop process wrote during a checkout", functi
 	end
 	cli.execute({ "example/widgets#7" }, (toDependencies(commands, {}, nil, store)))
 	assert.eq(#stored, 2)
-	assert.eq(tostring(stored[1].worktree.path), `{SILO}/worktrees/example/widgets-pr-9`)
-	assert.eq(tostring(stored[2].worktree.path), `{SILO}/worktrees/example/widgets-pr-7`)
+	assert.eq(tostring(stored[1].worktree.path), native(`{SILO}/worktrees/example/widgets-pr-9`))
+	assert.eq(tostring(stored[2].worktree.path), native(`{SILO}/worktrees/example/widgets-pr-7`))
 end)
 
 test.case("to clones a repository you do not have into the cache", function(assert)
 	local commands: { { string } } = {}
 	local store, stored = memoryOthers()
 	cli.execute({ "other/thing#5" }, (toDependencies(commands, {}, nil, store)))
-	local clone = `{SILO}/repos/other/thing`
+	local clone = native(`{SILO}/repos/other/thing`)
 	local ghCommands = commandsFrom(commands, "gh")
 	assert.eq(ghCommands[#ghCommands], `gh repo clone other/thing {clone} -- --filter=blob:none`)
 	local gitCommands = commandsFrom(commands, "git")
 	assert.eq(gitCommands[1], `git -C {clone} fetch origin refs/pull/5/head`)
-	assert.eq(lastCommand(commands)[2], `{SILO}/worktrees/other/thing-pr-5`)
+	assert.eq(lastCommand(commands)[2], native(`{SILO}/worktrees/other/thing-pr-5`))
 	assert.eq(stored[1].worktree.root, clone)
 end)
 
 test.case("list --refresh leaves others' work out of your worktrees and reports it separately", function(assert)
 	local output: { string } = {}
-	local destination = `{SILO}/worktrees/example/widgets-pr-7`
+	local destination = native(`{SILO}/worktrees/example/widgets-pr-7`)
 	local store = memoryOthers({
 		{
 			worktree = {
@@ -609,7 +618,7 @@ test.case("list --refresh leaves others' work out of your worktrees and reports 
 
 	cli.execute({ "list" }, dependencies)
 	assert.strContains(output[2], "Others' pull requests")
-	assert.strContains(output[2], "~/.hop/cache/worktrees/example/widgets-pr-7")
+	assert.strContains(output[2], native("~/.hop/cache/worktrees/example/widgets-pr-7"))
 end)
 
 test.case("list prints worktrees, PRs, and orphaned PRs for humans", function(assert)
@@ -647,7 +656,7 @@ test.case("list --json reports the default branch and live activity", function(a
 	local output: { string } = {}
 	local dependencies = toDependencies({}, output)
 	dependencies.activity = function(worktree)
-		return if tostring(worktree.path) == "/src/widgets" then 50 else 10
+		return if tostring(worktree.path) == native("/src/widgets") then 50 else 10
 	end
 	cli.execute({ "list", "--json" }, dependencies)
 	local value = json.asObject(json.deserialize(output[1])) or error("expected JSON object")
@@ -678,7 +687,7 @@ test.case("cursor resumes the selected session in its workspace", function(asser
 	cli.execute({ "cursor", "Implement" }, dependencies)
 	assert.eq(command[1], "agent")
 	assert.eq(command[2], "--workspace")
-	assert.eq(command[3], "/src/widgets-feature")
+	assert.eq(command[3], native("/src/widgets-feature"))
 	assert.eq(command[4], "--resume")
 	assert.eq(command[5], "cursor-1")
 end)
