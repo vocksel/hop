@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 
 local defaultRun = require("@root/command")
+local paths = require("@root/paths")
 local types = require("@root/types")
 
 export type Options = {
@@ -12,6 +13,7 @@ export type Options = {
 
 local SKIPPED_NAMES: { [string]: boolean } = {
 	Library = true,
+	AppData = true,
 	Applications = true,
 	Pictures = true,
 	Movies = true,
@@ -67,7 +69,7 @@ local function parseWorktreeList(
 				root = primaryPath,
 				head = nil,
 				defaultBranch = defaultBranch,
-				primary = worktreePath == primaryPath,
+				primary = paths.same(worktreePath, primaryPath),
 			}
 			current = created
 		elseif current then

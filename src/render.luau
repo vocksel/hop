@@ -1,3 +1,4 @@
+local paths = require("@root/paths")
 local snapshot = require("@root/core/snapshot")
 local types = require("@root/types")
 
@@ -22,15 +23,11 @@ local function label(item: RecentItem): string
 end
 
 local function tildePath(value: string, homeDirectory: string?): string
-	local home = if homeDirectory then homeDirectory:gsub("/+$", "") else ""
-	if home == "" then
+	local rest = if homeDirectory and homeDirectory ~= "" then paths.below(homeDirectory, value) else nil
+	if rest == nil then
 		return value
-	elseif value == home then
-		return "~"
-	elseif value:sub(1, #home + 1) == home .. "/" then
-		return "~" .. value:sub(#home + 1)
 	end
-	return value
+	return table.concat({ "~", table.unpack(rest) }, paths.separator)
 end
 
 local function pullRequestSummary(pullRequest: types.PullRequest): string

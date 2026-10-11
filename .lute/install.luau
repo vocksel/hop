@@ -17,12 +17,21 @@ local lock = require("@repo/loom.lock")
 fs.removeDirectory(packagesDir, { recursive = true })
 fs.createDirectory(packagesDir)
 
+-- Copies in Lute rather than with `cp`, which Windows lacks.
+local function copyDirectory(source: path.Path, destination: path.Path)
+	fs.createDirectory(destination, { makeParents = true })
+
+	for _, entry in fs.listDirectory(source) do
+		local from, to = path.join(source, entry.name), path.join(destination, entry.name)
+
+		if entry.type == "dir" then
+			copyDirectory(from, to)
+		elseif entry.type == "file" then
+			fs.copy(from, to)
+		end
+	end
+end
+
 for packageId in lock.packages :: { [string]: unknown } do
-	local copied = process.run({
-		"cp",
-		"-R",
-		tostring(path.join(storeDir, packageId)),
-		tostring(path.join(packagesDir, packageId)),
-	})
-	assert(copied.ok, `failed to vendor {packageId}: {copied.stderr}`)
+	copyDirectory(path.join(storeDir, packageId), path.join(packagesDir, packageId))
 end

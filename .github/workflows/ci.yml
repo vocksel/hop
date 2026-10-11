@@ -48,7 +48,11 @@ jobs:
         run: lute run analyze
 
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7

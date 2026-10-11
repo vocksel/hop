@@ -4,7 +4,7 @@ Hop joins local Cursor and Claude Code sessions to Git worktrees. It can list re
 
 ## Install
 
-Hop requires macOS, Git, the GitHub CLI, SQLite, VS Code's `code` launcher, and Cursor's `agent` launcher for the commands that use them.
+Hop runs on macOS, Windows, and Linux. It requires Git, the GitHub CLI, the `sqlite3` command, VS Code's `code` launcher, and Cursor's `agent` launcher for the commands that use them.
 
 ```sh
 rokit install

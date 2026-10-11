@@ -16,6 +16,7 @@ local github = require("@root/github")
 local loadConfig = require("@root/config/load")
 local matchWorktrees = require("@root/core/matchWorktrees")
 local others = require("@root/others")
+local paths = require("@root/paths")
 local providers = require("@root/providers")
 local render = require("@root/render")
 local resolve = require("@root/core/resolve")
@@ -242,7 +243,7 @@ end
 local function worktreeForSession(session: types.Session, worktrees: { types.Worktree }): types.Worktree?
 	if session.directory then
 		for _, worktree in worktrees do
-			if tostring(worktree.path) == session.directory then
+			if paths.same(worktree.path, session.directory) then
 				return worktree
 			end
 		end
@@ -450,7 +451,7 @@ local function openChoice(deps: Resolved, entries: { snapshot.Entry })
 		return render.entryLabel(entry, deps.homeDirectory)
 	end, deps.input, deps.write)
 	assert(selected, "no worktree selected")
-	editor.open(tostring(selected.worktree.path), deps.runner, deps.homeDirectory)
+	editor.open(tostring(selected.worktree.path), deps.runner)
 end
 
 local function openCheckout(deps: Resolved, entry: snapshot.Entry, created: boolean, target: resolve.CheckoutTarget)
@@ -458,7 +459,7 @@ local function openCheckout(deps: Resolved, entry: snapshot.Entry, created: bool
 	if created then
 		deps.write(`Checked out {target.repository}#{target.number} in {worktreePath}`)
 	end
-	editor.open(worktreePath, deps.runner, deps.homeDirectory)
+	editor.open(worktreePath, deps.runner)
 end
 
 -- Your worktrees and open PRs come first, then others' work Hop already checked out. Anything else

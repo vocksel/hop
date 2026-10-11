@@ -88,3 +88,53 @@ test.case("Cursor degrades to no sessions when sqlite is unavailable", function(
 	})
 	assert.eq(#provider:sessions(), 0)
 end)
+
+test.case("Cursor degrades to no sessions when sqlite cannot start", function(assert)
+	local _, database, storage = fixture()
+	local provider = Cursor.new({
+		databasePath = database,
+		workspaceStoragePath = storage,
+		runner = function(): types.CommandResult
+			error("Failed to spawn process: no such file or directory")
+		end,
+	})
+	assert.eq(#provider:sessions(), 0)
+end)
+
+test.case("Cursor reads Windows workspace folders with their drive", function(assert)
+	local _, database, storage = fixture()
+	fs.writeStringToFile(
+		path.join(storage, "workspace-1", "workspace.json"),
+		'{"folder":"file:///c%3A/Users/me/src/hop"}'
+	)
+	local provider = Cursor.new({
+		databasePath = database,
+		workspaceStoragePath = storage,
+		runner = function()
+			local rows: json.Array = {
+				{
+					composerId = "composer-1",
+					workspaceId = "workspace-1",
+					lastUpdatedAt = 1_700_000_000_000,
+					value = json.serialize({ name = "Windows session" }),
+				},
+			}
+			return { ok = true, exitCode = 0, stdout = json.serialize(rows), stderr = "" } :: types.CommandResult
+		end,
+	})
+	assert.eq(provider:sessions()[1].directory, "c:/Users/me/src/hop")
+end)
+
+test.case("Cursor finds its data in each platform's settings folder", function(assert)
+	local mac = Cursor.userDirectory("/Users/me", "macos", {})
+	assert.eq(path.format(mac), path.format(path.join("/Users/me", "Library", "Application Support", "Cursor", "User")))
+
+	local windows = Cursor.userDirectory("/home/me", "windows", { APPDATA = "/roaming" })
+	assert.eq(path.format(windows), path.format(path.join("/roaming", "Cursor", "User")))
+
+	local linux = Cursor.userDirectory("/home/me", "linux", {})
+	assert.eq(path.format(linux), path.format(path.join("/home/me", ".config", "Cursor", "User")))
+
+	local configured = Cursor.userDirectory("/home/me", "linux", { XDG_CONFIG_HOME = "/config" })
+	assert.eq(path.format(configured), path.format(path.join("/config", "Cursor", "User")))
+end)
