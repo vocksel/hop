@@ -7,6 +7,11 @@ local resolve = require("@root/core/resolve")
 local snapshot = require("@root/core/snapshot")
 local types = require("@root/types")
 
+-- Fixture paths in the form this platform prints them.
+local function native(value: string): string
+	return tostring(path.parse(value))
+end
+
 local function worktree(
 	directory: string,
 	branch: string,
@@ -34,10 +39,10 @@ local worktrees: { types.Worktree } = {
 }
 
 local lastUsed: { [string]: number } = {
-	["/src/uiblox"] = 10,
-	["/src/uiblox-migration"] = 20,
-	["/src/uiblox-tokens"] = 30,
-	["/src/apps-uiblox-update"] = 40,
+	[native("/src/uiblox")] = 10,
+	[native("/src/uiblox-migration")] = 20,
+	[native("/src/uiblox-tokens")] = 30,
+	[native("/src/apps-uiblox-update")] = 40,
 }
 
 local function activity(value: types.Worktree): number
@@ -107,16 +112,16 @@ end)
 test.case("a repository query lists its default-branch checkout first, then the most recently used", function(assert)
 	local matches = paths("uiblox")
 	assert.eq(#matches, 4)
-	assert.eq(matches[1], "/src/uiblox")
-	assert.eq(matches[2], "/src/apps-uiblox-update")
-	assert.eq(matches[3], "/src/uiblox-tokens")
-	assert.eq(matches[4], "/src/uiblox-migration")
+	assert.eq(matches[1], native("/src/uiblox"))
+	assert.eq(matches[2], native("/src/apps-uiblox-update"))
+	assert.eq(matches[3], native("/src/uiblox-tokens"))
+	assert.eq(matches[4], native("/src/uiblox-migration"))
 end)
 
 test.case("every query word must match", function(assert)
 	local matches = paths("uiblox m")
-	assert.eq(matches[1], "/src/uiblox")
-	assert.eq(matches[2], "/src/uiblox-migration")
+	assert.eq(matches[1], native("/src/uiblox"))
+	assert.eq(matches[2], native("/src/uiblox-migration"))
 	assert.eq(#matches, 2)
 	assert.eq(#paths("uiblox missing"), 0)
 end)
@@ -124,11 +129,11 @@ end)
 test.case("default matches default-branch checkouts without naming the branch", function(assert)
 	local uiblox = paths("uiblox default")
 	assert.eq(#uiblox, 1)
-	assert.eq(uiblox[1], "/src/uiblox")
+	assert.eq(uiblox[1], native("/src/uiblox"))
 
 	local legacy = paths("legacy default")
 	assert.eq(#legacy, 1)
-	assert.eq(legacy[1], "/src/legacy")
+	assert.eq(legacy[1], native("/src/legacy"))
 
 	assert.eq(#paths("trunk default"), 0)
 end)
@@ -144,8 +149,8 @@ test.case("an exact branch name lists worktrees on that branch first without hid
 		table.insert(result, tostring(entry.worktree.path))
 	end
 	assert.eq(#result, 3)
-	assert.eq(result[1], "/src/hop-hop")
-	assert.eq(result[2], "/src/hop")
+	assert.eq(result[1], native("/src/hop-hop"))
+	assert.eq(result[2], native("/src/hop"))
 end)
 
 test.case("orphaned PRs match when every word is in the title", function(assert)
@@ -213,9 +218,9 @@ local function otherPaths(text: string): { string }
 end
 
 test.case("others' work is reached by PR reference but never by search words", function(assert)
-	assert.eq(otherPaths("#7")[1], "/cache/worktrees/org/apps-pr-7")
-	assert.eq(otherPaths("apps#7")[1], "/cache/worktrees/org/apps-pr-7")
-	assert.eq(otherPaths("https://github.com/Org/Apps/pull/7")[1], "/cache/worktrees/org/apps-pr-7")
+	assert.eq(otherPaths("#7")[1], native("/cache/worktrees/org/apps-pr-7"))
+	assert.eq(otherPaths("apps#7")[1], native("/cache/worktrees/org/apps-pr-7"))
+	assert.eq(otherPaths("https://github.com/Org/Apps/pull/7")[1], native("/cache/worktrees/org/apps-pr-7"))
 	assert.eq(#otherPaths("uiblox#7"), 0)
 	assert.eq(#otherPaths("fonts"), 0)
 	assert.eq(#otherPaths("apps"), 0)

@@ -4,6 +4,11 @@ local test = require("@std/test")
 local matchWorktrees = require("@root/core/matchWorktrees")
 local types = require("@root/types")
 
+-- Fixture paths in the form this platform prints them.
+local function native(value: string): string
+	return tostring(path.parse(value))
+end
+
 local worktrees: { types.Worktree } = {
 	{ path = path.parse("/src/repo-main"), branch = "main", repository = "org/repo", primary = true },
 	{
@@ -18,16 +23,16 @@ local worktrees: { types.Worktree } = {
 test.case("an exact branch match short-circuits lower-ranked matches", function(assert)
 	local matches = matchWorktrees(worktrees, "main")
 	assert.eq(#matches, 1)
-	assert.eq(tostring(matches[1].path), "/src/repo-main")
+	assert.eq(tostring(matches[1].path), native("/src/repo-main"))
 end)
 
 test.case("matching ranks branch before basename before repository", function(assert)
 	local branch = matchWorktrees(worktrees, "navigation")
-	assert.eq(tostring(branch[1].path), "/src/repo-feature")
+	assert.eq(tostring(branch[1].path), native("/src/repo-feature"))
 	local basename = matchWorktrees(worktrees, "repo-feature")
-	assert.eq(tostring(basename[1].path), "/src/repo-feature")
+	assert.eq(tostring(basename[1].path), native("/src/repo-feature"))
 	local repository = matchWorktrees(worktrees, "org/other")
-	assert.eq(tostring(repository[1].path), "/src/other")
+	assert.eq(tostring(repository[1].path), native("/src/other"))
 end)
 
 test.case("matching always returns a target set", function(assert)

@@ -36,6 +36,7 @@ export type Dependencies = {
 	others: others.Store?,
 	now: (() -> number)?,
 	activity: resolve.Activity?,
+	system: editor.System?,
 }
 
 type Resolved = {
@@ -49,6 +50,7 @@ type Resolved = {
 	others: others.Store,
 	now: () -> number,
 	activity: resolve.Activity,
+	system: editor.System?,
 }
 
 type RecentOptions = {
@@ -199,6 +201,7 @@ local function dependencies(options: Dependencies?): Resolved
 			return os.time()
 		end,
 		activity = resolved.activity or git.lastActivity,
+		system = resolved.system,
 	}
 end
 
@@ -451,7 +454,7 @@ local function openChoice(deps: Resolved, entries: { snapshot.Entry })
 		return render.entryLabel(entry, deps.homeDirectory)
 	end, deps.input, deps.write)
 	assert(selected, "no worktree selected")
-	editor.open(tostring(selected.worktree.path), deps.runner)
+	editor.open(tostring(selected.worktree.path), deps.runner, deps.system)
 end
 
 local function openCheckout(deps: Resolved, entry: snapshot.Entry, created: boolean, target: resolve.CheckoutTarget)
@@ -459,7 +462,7 @@ local function openCheckout(deps: Resolved, entry: snapshot.Entry, created: bool
 	if created then
 		deps.write(`Checked out {target.repository}#{target.number} in {worktreePath}`)
 	end
-	editor.open(worktreePath, deps.runner)
+	editor.open(worktreePath, deps.runner, deps.system)
 end
 
 -- Your worktrees and open PRs come first, then others' work Hop already checked out. Anything else
@@ -592,7 +595,7 @@ local function execute(args: { string }, options: Dependencies?)
 		local selected = selectItem(cursorItems, parser:get("query"), deps.input, deps.write)
 		assert(selected, "no matching Cursor session found")
 		local target = assert(itemWorktree(selected), "Cursor session has no workspace")
-		editor.resume(tostring(target.path), selected.session.id, deps.runner)
+		editor.resume(tostring(target.path), selected.session.id, deps.runner, deps.system)
 	end
 end
 

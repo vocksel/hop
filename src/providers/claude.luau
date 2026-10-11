@@ -101,7 +101,8 @@ local function parseSession(filepath: path.Pathlike): types.Session?
 	local directory: string? = nil
 	local branch: string? = nil
 	local updatedAt = 0
-	local id = tostring(filepath):match("([^/]+)%.jsonl$") or tostring(filepath)
+	local name = path.basename(filepath) or tostring(filepath)
+	local id = name:match("^(.+)%.jsonl$") or name
 
 	for line in (contents :: string):gmatch("[^\r\n]+") do
 		local decodeOk, decoded = pcall(json.deserialize, line)
